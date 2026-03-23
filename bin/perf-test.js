@@ -33,6 +33,7 @@ const argv = yargs(hideBin(process.argv))
   .option('login-url', { type: 'string', describe: 'Login page URL for form-based auth (requires --username and --password)' })
   .option('username', { type: 'string', describe: 'Username for form login' })
   .option('password', { type: 'string', describe: 'Password for form login' })
+  .option('company-id', { type: 'string', describe: 'Company ID for form login (fills #CompanyId input)' })
   .check(argv => {
     if ((argv['login-url'] || argv.username || argv.password) &&
         !(argv['login-url'] && argv.username && argv.password)) {
@@ -44,7 +45,7 @@ const argv = yargs(hideBin(process.argv))
   .argv;
 
 async function main() {
-  const { url, iterations, concurrency, output, cookie, authHeader, loginUrl, username, password } = argv;
+  const { url, iterations, concurrency, output, cookie, authHeader, loginUrl, username, password, companyId } = argv;
   const outputDir = path.resolve(output);
 
   console.log(chalk.bold.cyan('\n🚀 Performance Benchmark Tool'));
@@ -52,7 +53,7 @@ async function main() {
   console.log(chalk.gray(`   Iterations: ${iterations}, Concurrency: ${concurrency}`));
   if (cookie) console.log(chalk.gray(`   Cookie: ${cookie.slice(0, 40)}${cookie.length > 40 ? '…' : ''}`));
   if (authHeader) console.log(chalk.gray(`   Auth: ${authHeader.split(':')[0]}: ***`));
-  if (loginUrl) console.log(chalk.gray(`   Login: ${loginUrl} (user: ${username})`));
+  if (loginUrl) console.log(chalk.gray(`   Login: ${loginUrl} (user: ${username}${companyId ? `, company: ${companyId}` : ''})`));
   console.log('');
 
   const depSpinner = ora('Checking dependencies...').start();
@@ -67,7 +68,7 @@ async function main() {
 
   const spinner = ora('Running benchmark tests in parallel...').start();
 
-  const opts = { iterations, concurrency, cookie, authHeader, loginUrl, username, password, ...deps };
+  const opts = { iterations, concurrency, cookie, authHeader, loginUrl, username, password, companyId, ...deps };
 
   let results;
   try {

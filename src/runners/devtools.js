@@ -3,7 +3,7 @@
 const { parseCookies, parseAuthHeader, loginWithPuppeteer } = require('../utils/auth');
 
 async function runDevTools(url, options) {
-  const { iterations = 10, cookie, authHeader, loginUrl, username, password } = options;
+  const { iterations = 10, cookie, authHeader, loginUrl, username, password, companyId } = options;
   const puppeteer = require('puppeteer');
 
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -14,7 +14,7 @@ async function runDevTools(url, options) {
     let sessionCookies = [];
     if (loginUrl && username && password) {
       try {
-        sessionCookies = await loginWithPuppeteer(browser, loginUrl, username, password);
+        sessionCookies = await loginWithPuppeteer(browser, loginUrl, username, password, companyId);
       } catch (e) {
         throw new Error(`Login failed: ${e.message}`);
       }

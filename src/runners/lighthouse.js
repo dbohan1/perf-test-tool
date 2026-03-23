@@ -3,7 +3,7 @@
 const { parseCookies, parseAuthHeader, loginWithPuppeteer, cookiesToHeader } = require('../utils/auth');
 
 async function runLighthouse(url, options) {
-  const { cookie, authHeader, loginUrl, username, password } = options;
+  const { cookie, authHeader, loginUrl, username, password, companyId } = options;
 
   let lighthouse;
   try {
@@ -53,7 +53,7 @@ async function runLighthouse(url, options) {
       const puppeteer = require('puppeteer');
       const browser = await puppeteer.connect({ browserURL: `http://localhost:${chrome.port}` });
       try {
-        const sessionCookies = await loginWithPuppeteer(browser, loginUrl, username, password);
+        const sessionCookies = await loginWithPuppeteer(browser, loginUrl, username, password, companyId);
         const cookieHeader = cookiesToHeader(sessionCookies);
         if (cookieHeader) {
           // Merge with any explicit --cookie value

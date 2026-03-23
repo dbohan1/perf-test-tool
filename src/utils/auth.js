@@ -28,10 +28,18 @@ function parseAuthHeader(authHeader) {
  * Use Puppeteer to perform a form-based login and return the resulting cookies.
  * Tries common selectors for username/password fields.
  */
-async function loginWithPuppeteer(browser, loginUrl, username, password) {
+async function loginWithPuppeteer(browser, loginUrl, username, password, companyId) {
   const page = await browser.newPage();
   try {
     await page.goto(loginUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+
+    // Fill company ID field if provided
+    if (companyId) {
+      const companyField = await page.$('#CompanyId, input[name="CompanyId"]');
+      if (!companyField) throw new Error('Could not find CompanyId input on login page');
+      await companyField.click({ clickCount: 3 });
+      await companyField.type(String(companyId), { delay: 30 });
+    }
 
     const usernameSelectors = [
       'input[type="email"]',

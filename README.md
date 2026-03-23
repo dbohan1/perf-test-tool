@@ -54,6 +54,7 @@ node bin/perf-test.js --url <url> [options]
 | `--login-url` | — | Login page URL for form-based auth (requires `--username` and `--password`) |
 | `--username` | — | Username/email for form login |
 | `--password` | — | Password for form login |
+| `--company-id` | — | Company ID for form login (fills the `#CompanyId` input) |
 
 ### Examples
 
@@ -75,11 +76,12 @@ node bin/perf-test.js --url https://api.example.com/secure \
 node bin/perf-test.js --url https://app.example.com/dashboard \
   --cookie "session=abc123; csrf=xyz"
 
-# Form login (Puppeteer navigates the login page automatically)
+# Form login (with company ID field)
 node bin/perf-test.js --url https://app.example.com/dashboard \
   --login-url https://app.example.com/login \
   --username admin@example.com \
-  --password secret
+  --password secret \
+  --company-id ACME
 ```
 
 ---
@@ -119,7 +121,7 @@ node bin/perf-test.js --url https://app.example.com/dashboard \
   --password secret
 ```
 
-The login flow uses common field selectors (`input[type="email"]`, `input[name="username"]`, `input[type="password"]`, etc.) and submits via the page's submit button or Enter key.
+The login flow fills in a `#CompanyId` field if `--company-id` is provided, then uses common selectors for the username/email and password fields, and submits via the page's submit button or Enter key.
 
 > **Tip:** For maximum coverage behind a login wall, combine `--login-url` (for Puppeteer/Lighthouse) with `--cookie` or `--auth-header` (for Newman/JMeter).
 
