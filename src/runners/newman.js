@@ -19,7 +19,13 @@ function calcMetrics(times, successes) {
 }
 
 async function runNewman(url, options) {
-  const { iterations = 10 } = options;
+  const { iterations = 10, cookie, authHeader } = options;
+  const { parseAuthHeader } = require('../utils/auth');
+
+  const headers = [];
+  if (cookie) headers.push({ key: 'Cookie', value: cookie });
+  const parsedAuth = parseAuthHeader(authHeader);
+  if (parsedAuth) headers.push({ key: parsedAuth.name, value: parsedAuth.value });
 
   const collection = {
     info: { name: 'PerfTest', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
@@ -27,7 +33,8 @@ async function runNewman(url, options) {
       name: 'GET Request',
       request: {
         method: 'GET',
-        url: url
+        url: url,
+        header: headers
       }
     }]
   };

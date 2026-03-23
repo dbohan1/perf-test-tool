@@ -1,6 +1,10 @@
 'use strict';
 
+const { parseCookies, parseAuthHeader, loginWithPuppeteer, cookiesToHeader } = require('../utils/auth');
+
 async function runLighthouse(url, options) {
+  const { cookie, authHeader, loginUrl, username, password } = options;
+
   let lighthouse;
   try {
     const lhModule = require('lighthouse');
@@ -20,7 +24,6 @@ async function runLighthouse(url, options) {
     }
   }
 
-  // Try to find Puppeteer's bundled Chrome if chrome-launcher can't find one
   let chromePath;
   try {
     const puppeteer = require('puppeteer');
@@ -35,10 +38,37 @@ async function runLighthouse(url, options) {
     if (chromePath) launchOpts.chromePath = chromePath;
     chrome = await chromeLauncher.launch(launchOpts);
 
+    // Build extra headers for Lighthouse
+    const extraHeaders = {};
+
+    // --cookie flag
+    if (cookie) extraHeaders['Cookie'] = cookie;
+
+    // --auth-header flag
+    const parsedAuth = parseAuthHeader(authHeader);
+    if (parsedAuth) extraHeaders[parsedAuth.name] = parsedAuth.value;
+
+    // --login-url / --username / --password: use Puppeteer to log in, extract cookies
+    if (loginUrl && username && password) {
+      const puppeteer = require('puppeteer');
+      const browser = await puppeteer.connect({ browserURL: `http://localhost:${chrome.port}` });
+      try {
+        const sessionCookies = await loginWithPuppeteer(browser, loginUrl, username, password);
+        const cookieHeader = cookiesToHeader(sessionCookies);
+        if (cookieHeader) {
+          // Merge with any explicit --cookie value
+          extraHeaders['Cookie'] = [extraHeaders['Cookie'], cookieHeader].filter(Boolean).join('; ');
+        }
+      } finally {
+        await browser.disconnect();
+      }
+    }
+
     const runnerResult = await lighthouse(url, {
       port: chrome.port,
       output: 'json',
       logLevel: 'error',
+      extraHeaders: Object.keys(extraHeaders).length > 0 ? extraHeaders : undefined,
     }, {
       extends: 'lighthouse:default',
       settings: { onlyCategories: ['performance'] }

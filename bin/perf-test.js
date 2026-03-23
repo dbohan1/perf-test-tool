@@ -28,16 +28,32 @@ const argv = yargs(hideBin(process.argv))
   .option('iterations', { type: 'number', default: 10, describe: 'Number of iterations' })
   .option('concurrency', { type: 'number', default: 5, describe: 'Concurrent users (JMeter)' })
   .option('output', { type: 'string', default: './reports', describe: 'Output directory' })
+  .option('cookie', { type: 'string', describe: 'Cookie header value, e.g. "session=abc; token=xyz"' })
+  .option('auth-header', { type: 'string', describe: 'Auth header, e.g. "Authorization: Bearer abc123"' })
+  .option('login-url', { type: 'string', describe: 'Login page URL for form-based auth (requires --username and --password)' })
+  .option('username', { type: 'string', describe: 'Username for form login' })
+  .option('password', { type: 'string', describe: 'Password for form login' })
+  .check(argv => {
+    if ((argv['login-url'] || argv.username || argv.password) &&
+        !(argv['login-url'] && argv.username && argv.password)) {
+      throw new Error('--login-url, --username, and --password must all be provided together');
+    }
+    return true;
+  })
   .help()
   .argv;
 
 async function main() {
-  const { url, iterations, concurrency, output } = argv;
+  const { url, iterations, concurrency, output, cookie, authHeader, loginUrl, username, password } = argv;
   const outputDir = path.resolve(output);
 
   console.log(chalk.bold.cyan('\n🚀 Performance Benchmark Tool'));
   console.log(chalk.gray(`   URL: ${url}`));
-  console.log(chalk.gray(`   Iterations: ${iterations}, Concurrency: ${concurrency}\n`));
+  console.log(chalk.gray(`   Iterations: ${iterations}, Concurrency: ${concurrency}`));
+  if (cookie) console.log(chalk.gray(`   Cookie: ${cookie.slice(0, 40)}${cookie.length > 40 ? '…' : ''}`));
+  if (authHeader) console.log(chalk.gray(`   Auth: ${authHeader.split(':')[0]}: ***`));
+  if (loginUrl) console.log(chalk.gray(`   Login: ${loginUrl} (user: ${username})`));
+  console.log('');
 
   const depSpinner = ora('Checking dependencies...').start();
   let deps;
@@ -51,7 +67,7 @@ async function main() {
 
   const spinner = ora('Running benchmark tests in parallel...').start();
 
-  const opts = { iterations, concurrency, ...deps };
+  const opts = { iterations, concurrency, cookie, authHeader, loginUrl, username, password, ...deps };
 
   let results;
   try {

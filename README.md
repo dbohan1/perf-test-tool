@@ -49,6 +49,11 @@ node bin/perf-test.js --url <url> [options]
 | `--iterations` | `10` | Number of requests per API tool |
 | `--concurrency` | `5` | JMeter virtual user threads |
 | `--output` | `./reports` | Directory to write report files |
+| `--cookie` | — | Cookie header value, e.g. `"session=abc; token=xyz"` |
+| `--auth-header` | — | Auth header, e.g. `"Authorization: Bearer abc123"` |
+| `--login-url` | — | Login page URL for form-based auth (requires `--username` and `--password`) |
+| `--username` | — | Username/email for form login |
+| `--password` | — | Password for form login |
 
 ### Examples
 
@@ -61,7 +66,71 @@ node bin/perf-test.js --url https://api.example.com/endpoint --iterations 50 --c
 
 # Custom output directory
 node bin/perf-test.js --url https://example.com --output ./my-reports
+
+# Bearer token auth
+node bin/perf-test.js --url https://api.example.com/secure \
+  --auth-header "Authorization: Bearer eyJhbGci..."
+
+# Cookie-based session
+node bin/perf-test.js --url https://app.example.com/dashboard \
+  --cookie "session=abc123; csrf=xyz"
+
+# Form login (Puppeteer navigates the login page automatically)
+node bin/perf-test.js --url https://app.example.com/dashboard \
+  --login-url https://app.example.com/login \
+  --username admin@example.com \
+  --password secret
 ```
+
+---
+
+## Authentication
+
+Pages behind a login are supported via three methods. Use whichever matches your site.
+
+### `--cookie`
+Injects a raw cookie string into **all four tools** as a `Cookie:` request header.
+
+```bash
+node bin/perf-test.js --url https://app.example.com/page \
+  --cookie "session=abc123; remember_me=1"
+```
+
+Get your cookie string from browser DevTools → Application → Cookies, then copy the values for the domain.
+
+### `--auth-header`
+Injects a custom HTTP header into **Newman, JMeter, and Lighthouse**. Useful for APIs using Bearer tokens or API keys.
+
+```bash
+node bin/perf-test.js --url https://api.example.com/data \
+  --auth-header "Authorization: Bearer eyJhbGci..."
+
+node bin/perf-test.js --url https://api.example.com/data \
+  --auth-header "X-API-Key: my-secret-key"
+```
+
+### `--login-url` + `--username` + `--password`
+Puppeteer navigates to the login page, fills in the form, submits it, and captures the resulting session cookies. Those cookies are then used for **Chrome DevTools and Lighthouse** runs. All three flags must be provided together.
+
+```bash
+node bin/perf-test.js --url https://app.example.com/dashboard \
+  --login-url https://app.example.com/login \
+  --username admin@example.com \
+  --password secret
+```
+
+The login flow uses common field selectors (`input[type="email"]`, `input[name="username"]`, `input[type="password"]`, etc.) and submits via the page's submit button or Enter key.
+
+> **Tip:** For maximum coverage behind a login wall, combine `--login-url` (for Puppeteer/Lighthouse) with `--cookie` or `--auth-header` (for Newman/JMeter).
+
+### Auth support per tool
+
+| Tool | `--cookie` | `--auth-header` | `--login-url` |
+|---|---|---|---|
+| Newman (Postman) | ✅ `Cookie:` header | ✅ Custom header | — |
+| JMeter | ✅ `Cookie:` via Header Manager | ✅ Custom header | — |
+| Chrome DevTools | ✅ `page.setCookie()` | ✅ `setExtraHTTPHeaders()` | ✅ Form login |
+| Lighthouse | ✅ `extraHeaders` | ✅ `extraHeaders` | ✅ Form login |
 
 ---
 
@@ -122,10 +191,12 @@ PerfTesting/
 │   │   ├── jmeter.js         # JMeter runner (generates JMX, parses CSV results)
 │   │   ├── devtools.js       # Puppeteer + Chrome DevTools Protocol runner
 │   │   └── lighthouse.js     # Lighthouse audit runner
-│   └── reporters/
-│       ├── console.js        # Colored CLI table output
-│       ├── json.js           # JSON file writer
-│       └── html.js           # HTML report generator (Handlebars)
+│   ├── reporters/
+│   │   ├── console.js        # Colored CLI table output
+│   │   ├── json.js           # JSON file writer
+│   │   └── html.js           # HTML report generator (Handlebars)
+│   └── utils/
+│       └── auth.js           # Cookie parsing, auth-header parsing, form login helper
 ├── templates/
 │   └── report.html.template  # Self-contained HTML report template
 ├── vendor/                   # Auto-downloaded JMeter binary (gitignored)

@@ -11,13 +11,24 @@ function calcPercentile(arr, p) {
   return sorted[Math.max(0, idx)];
 }
 
-function buildJmx(url, iterations, concurrency, resultsFile) {
+function buildJmx(url, iterations, concurrency, resultsFile, headers = []) {
   const parsed = new URL(url);
   const hostname = parsed.hostname;
   const port = parsed.port || (parsed.protocol === 'https:' ? 443 : 80);
   const protocol = parsed.protocol.replace(':', '');
   const urlPath = parsed.pathname + (parsed.search || '');
   const resultsFileSafe = resultsFile.replace(/\\/g, '/');
+
+  const headerManagerXml = headers.length > 0 ? `
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
+          <collectionProp name="HeaderManager.headers">
+            ${headers.map(h => `<elementProp name="" elementType="Header">
+              <stringProp name="Header.name">${h.name}</stringProp>
+              <stringProp name="Header.value">${h.value}</stringProp>
+            </elementProp>`).join('\n            ')}
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>` : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
@@ -47,7 +58,7 @@ function buildJmx(url, iterations, concurrency, resultsFile) {
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
-        <hashTree/>
+        <hashTree/>${headerManagerXml}
         <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="Simple Data Writer">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
@@ -109,7 +120,8 @@ function findJavaHome() {
 }
 
 async function runJMeter(url, options) {
-  const { iterations = 10, concurrency = 5, available = false, path: jmeterPath = null } = options;
+  const { iterations = 10, concurrency = 5, available = false, path: jmeterPath = null, cookie, authHeader } = options;
+  const { parseAuthHeader } = require('../utils/auth');
 
   if (!available || !jmeterPath) {
     return {
@@ -126,7 +138,12 @@ async function runJMeter(url, options) {
   const resultsFile = path.join(tmpDir, `perf-results-${Date.now()}.csv`);
 
   try {
-    const jmx = buildJmx(url, iterations, concurrency, resultsFile);
+    const jmxHeaders = [];
+    if (cookie) jmxHeaders.push({ name: 'Cookie', value: cookie });
+    const parsedAuth = parseAuthHeader(authHeader);
+    if (parsedAuth) jmxHeaders.push({ name: parsedAuth.name, value: parsedAuth.value });
+
+    const jmx = buildJmx(url, iterations, concurrency, resultsFile, jmxHeaders);
     fs.writeFileSync(jmxFile, jmx, 'utf8');
 
     // Resolve JAVA_HOME from common install locations if not already set
