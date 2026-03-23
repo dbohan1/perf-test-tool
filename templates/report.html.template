@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance Report - {{url}}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #333; display: flex; min-height: 100vh; }
+  .sidebar { width: 260px; background: #1a1d2e; color: #fff; padding: 32px 24px; position: fixed; height: 100vh; overflow-y: auto; }
+  .sidebar h1 { font-size: 18px; font-weight: 700; color: #7c83fd; margin-bottom: 8px; }
+  .sidebar .subtitle { font-size: 12px; color: #8891a4; margin-bottom: 32px; }
+  .sidebar .meta { font-size: 12px; color: #8891a4; line-height: 1.8; }
+  .sidebar .meta strong { color: #c8cfdb; display: block; margin-top: 12px; }
+  .sidebar .meta span { word-break: break-all; }
+  .sidebar nav { margin-top: 32px; }
+  .sidebar nav a { display: block; padding: 8px 12px; color: #8891a4; text-decoration: none; border-radius: 6px; font-size: 13px; margin-bottom: 4px; }
+  .sidebar nav a:hover { background: #2d3148; color: #fff; }
+  .main { margin-left: 260px; padding: 40px; width: calc(100% - 260px); }
+  .header { background: #fff; border-radius: 12px; padding: 28px 32px; margin-bottom: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .header h2 { font-size: 24px; color: #1a1d2e; margin-bottom: 6px; }
+  .header p { color: #666; font-size: 14px; }
+  .section { background: #fff; border-radius: 12px; padding: 28px 32px; margin-bottom: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .section h3 { font-size: 16px; font-weight: 700; color: #1a1d2e; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f0f2f5; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #f7f8fa; padding: 12px 16px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e8eaed; }
+  td { padding: 12px 16px; border-bottom: 1px solid #f0f2f5; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .good { color: #15803d; background: #dcfce7; }
+  .warn { color: #92400e; background: #fef3c7; }
+  .poor { color: #b91c1c; background: #fee2e2; }
+  .score-big { font-size: 48px; font-weight: 900; }
+  .score-row { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+  .score-card { background: #f7f8fa; border-radius: 10px; padding: 16px 24px; text-align: center; min-width: 120px; }
+  .score-card .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-top: 6px; }
+  .info-box { background: #f0f4ff; border-left: 4px solid #6366f1; border-radius: 0 8px 8px 0; margin-bottom: 20px; font-size: 13px; color: #444; line-height: 1.7; }
+  .info-box summary { padding: 10px 18px; cursor: pointer; color: #3730a3; font-weight: 600; font-size: 13px; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; }
+  .info-box summary::-webkit-details-marker { display: none; }
+  .info-box summary::before { content: '▶'; font-size: 10px; transition: transform .2s; display: inline-block; }
+  .info-box[open] summary::before { transform: rotate(90deg); }
+  .info-box-body { padding: 0 18px 14px 18px; }
+  .info-box .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  .info-box .method-item { background: #fff; border-radius: 6px; padding: 10px 14px; border: 1px solid #e0e7ff; }
+  .info-box .method-item .method-name { font-weight: 700; color: #3730a3; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .info-box .method-item .method-desc { font-size: 12px; color: #555; line-height: 1.5; }
+  .info-box .example { margin-top: 10px; background: #fff; border-radius: 6px; padding: 8px 12px; border: 1px solid #e0e7ff; font-family: 'Courier New', monospace; font-size: 12px; color: #374151; }
+  .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <h1>⚡ PerfTest</h1>
+  <div class="subtitle">Performance Benchmark</div>
+  <div class="meta">
+    <strong>URL</strong><span>{{url}}</span>
+    <strong>Generated</strong><span>{{timestamp}}</span>
+    <strong>Iterations</strong><span>{{iterations}}</span>
+    <strong>Concurrency</strong><span>{{concurrency}}</span>
+  </div>
+  <nav>
+    {{#if hasApi}}<a href="#api">📊 API Response Time</a>{{/if}}
+    {{#if hasPage}}<a href="#page">🌐 Page Load Metrics</a>{{/if}}
+    {{#if hasLighthouse}}<a href="#lighthouse">🔦 Lighthouse</a>{{/if}}
+  </nav>
+</div>
+<div class="main">
+  <div class="header">
+    <h2>Performance Report</h2>
+    <p>Benchmark results for <strong>{{url}}</strong> — {{timestamp}}</p>
+  </div>
+
+  {{#if hasApi}}
+  <div class="section" id="api">
+    <h3>📊 API Response Time <span class="tag">API</span></h3>
+    <details class="info-box">
+      <summary>ℹ How this is measured</summary>
+      <div class="info-box-body">
+      Each tool sends real HTTP GET requests to your URL and records the round-trip elapsed time from the moment the request is sent to when the full response is received — not including DNS or TCP setup for keep-alive connections.
+      <div class="method-grid">
+        <div class="method-item">
+          <div class="method-name">Newman (Postman)</div>
+          <div class="method-desc">Runs a generated Postman Collection sequentially for <em>N iterations</em>. Each request is timed using Newman's built-in execution engine, which wraps Node.js <code>http</code>/<code>https</code>. Reports min, avg, max, and P95 across all runs.</div>
+        </div>
+        <div class="method-item">
+          <div class="method-name">JMeter</div>
+          <div class="method-desc">Spins up <em>C virtual user threads</em>, each looping <em>N iterations</em>. Elapsed time is JMeter's <code>elapsed</code> column — time from request start to last byte of response. Enables true concurrency testing.</div>
+        </div>
+      </div>
+      <div class="example">Example ({{iterations}} iterations{{#if concurrency}}, {{concurrency}} threads{{/if}}): min=45ms · avg=120ms · max=310ms · P95=275ms · Success=100%</div>
+      </div>
+    </details>
+    <table>
+      <thead>
+        <tr>
+          <th>Tool</th><th>Min</th><th>Avg</th><th>Max</th><th>P95</th><th>Success%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each apiResults}}
+        <tr>
+          <td><strong>{{tool}}</strong></td>
+          <td>{{metrics.min}} ms</td>
+          <td>{{metrics.avg}} ms</td>
+          <td>{{metrics.max}} ms</td>
+          <td>{{metrics.p95}} ms</td>
+          <td>{{metrics.successRate}}%</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+
+  {{#if hasPage}}
+  <div class="section" id="page">
+    <h3>🌐 Page Load Metrics <span class="tag">PAGE</span></h3>
+    <details class="info-box">
+      <summary>ℹ How this is measured</summary>
+      <div class="info-box-body">
+      Both tools launch a real headless Chrome browser, navigate to your URL, and record browser-level timing events — not raw HTTP timings. This captures rendering, scripting, and resource loading exactly as a real user's browser would experience it.
+      <div class="method-grid">
+        <div class="method-item">
+          <div class="method-name">Chrome DevTools (Puppeteer)</div>
+          <div class="method-desc">Uses the <strong>Navigation Timing API</strong> (<code>window.performance.timing</code>) collected via Chrome DevTools Protocol.
+            <br>• <strong>TTFB</strong> = <code>responseStart − navigationStart</code>
+            <br>• <strong>DOM Load</strong> = <code>domContentLoadedEventEnd − navigationStart</code>
+            <br>• <strong>Full Load</strong> = <code>loadEventEnd − navigationStart</code>
+          </div>
+        </div>
+        <div class="method-item">
+          <div class="method-name">Lighthouse</div>
+          <div class="method-desc">Uses Chrome's built-in trace event profiler with Lighthouse's audit engine.
+            <br>• <strong>LCP</strong> — largest above-fold element becomes visible
+            <br>• <strong>FCP</strong> — first pixel of content painted
+            <br>• <strong>TTI</strong> — page becomes fully interactive
+            <br>• <strong>TBT</strong> — total thread-blocking time
+            <br>• <strong>CLS</strong> — cumulative layout shift score
+          </div>
+        </div>
+      </div>
+      <div class="example">Example: TTFB=35ms · DOM Load=420ms · Full Load=850ms · LCP=1,200ms · CLS=0.02 (good)</div>
+      </div>
+    </details>
+    <table>
+      <thead>
+        <tr>
+          <th>Tool</th><th>TTFB</th><th>DOM Load</th><th>Full Load</th><th>FCP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#if hasDevtools}}
+        <tr>
+          <td><strong>{{devtools.tool}}</strong></td>
+          <td>{{devtools.metrics.ttfb}} ms</td>
+          <td>{{devtools.metrics.domLoad}} ms</td>
+          <td>{{devtools.metrics.fullLoad}} ms</td>
+          <td>{{devtools.metrics.fcp}} ms</td>
+        </tr>
+        {{/if}}
+        {{#if hasLighthouse}}
+        <tr>
+          <td><strong>Lighthouse</strong></td>
+          <td>—</td><td>—</td><td>—</td>
+          <td>{{lighthouse.metrics.fcp}} ms</td>
+        </tr>
+        {{/if}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+
+  {{#if hasLighthouse}}
+  <div class="section" id="lighthouse">
+    <h3>🔦 Lighthouse Performance <span class="tag">LIGHTHOUSE</span></h3>
+    <div class="score-row" style="margin-bottom:24px;">
+      <div class="score-card">
+        <div class="score-big {{scoreColor lighthouse.metrics.performanceScore}}">{{lighthouse.metrics.performanceScore}}</div>
+        <div class="label">Performance Score</div>
+      </div>
+      <div class="score-card">
+        <div style="font-size:24px;font-weight:800;">{{lighthouse.metrics.lcp}} <small style="font-size:14px;">ms</small></div>
+        <div class="label">LCP</div>
+      </div>
+      <div class="score-card">
+        <div style="font-size:24px;font-weight:800;">{{lighthouse.metrics.fcp}} <small style="font-size:14px;">ms</small></div>
+        <div class="label">FCP</div>
+      </div>
+      <div class="score-card">
+        <div style="font-size:24px;font-weight:800;">{{lighthouse.metrics.tti}} <small style="font-size:14px;">ms</small></div>
+        <div class="label">TTI</div>
+      </div>
+      <div class="score-card">
+        <div style="font-size:24px;font-weight:800;">{{lighthouse.metrics.tbt}} <small style="font-size:14px;">ms</small></div>
+        <div class="label">TBT</div>
+      </div>
+      <div class="score-card">
+        <div style="font-size:24px;font-weight:800;">{{fixed lighthouse.metrics.cls 3}}</div>
+        <div class="label">CLS</div>
+      </div>
+    </div>
+  </div>
+  {{/if}}
+
+  {{#if hasSkipped}}
+  <div class="section">
+    <h3>⚠ Skipped / Errors</h3>
+    {{#each skipped}}
+    <div class="skipped">{{tool}}: {{reason}}{{error}}</div>
+    {{/each}}
+  </div>
+  {{/if}}
+</div>
+</body>
+</html>

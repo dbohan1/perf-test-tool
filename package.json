@@ -1,0 +1,25 @@
+{
+  "name": "perf-test",
+  "version": "1.0.0",
+  "description": "Automated benchmark testing tool using Postman/Newman, JMeter, Chrome DevTools, and Lighthouse",
+  "main": "src/index.js",
+  "bin": {
+    "perf-test": "bin/perf-test.js"
+  },
+  "scripts": {
+    "start": "node bin/perf-test.js"
+  },
+  "dependencies": {
+    "yargs": "^17.7.2",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.3",
+    "newman": "^6.1.2",
+    "puppeteer": "^22.0.0",
+    "lighthouse": "^12.0.0",
+    "axios": "^1.6.0",
+    "adm-zip": "^0.5.10",
+    "handlebars": "^4.7.8",
+    "ora": "^5.4.1",
+    "xml2js": "^0.6.2"
+  }
+}
