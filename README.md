@@ -37,6 +37,24 @@ npm install
 
 ## Usage
 
+### Interactive wizard (recommended)
+
+Run with no arguments to be guided through all options step by step:
+
+```bash
+node bin/perf-test.js
+```
+
+The wizard prompts for:
+1. Target URL
+2. Iterations and concurrency
+3. Output directory
+4. Whether the page needs authentication — and if so, which method (form login, cookie, or auth header)
+
+After collecting all inputs it shows a summary and asks for confirmation before running.
+
+### CLI flags (for scripting / CI)
+
 ```bash
 node bin/perf-test.js --url <url> [options]
 ```

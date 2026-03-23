@@ -22,9 +22,11 @@ const runLighthouse = require('../src/runners/lighthouse');
 const reportConsole = require('../src/reporters/console');
 const reportJSON = require('../src/reporters/json');
 const reportHTML = require('../src/reporters/html');
+const runWizard = require('../src/wizard');
 
+// Parse args without requiring --url so we can detect wizard mode
 const argv = yargs(hideBin(process.argv))
-  .option('url', { type: 'string', demandOption: true, describe: 'URL to test' })
+  .option('url', { type: 'string', describe: 'URL to test' })
   .option('iterations', { type: 'number', default: 10, describe: 'Number of iterations' })
   .option('concurrency', { type: 'number', default: 5, describe: 'Concurrent users (JMeter)' })
   .option('output', { type: 'string', default: './reports', describe: 'Output directory' })
@@ -35,7 +37,7 @@ const argv = yargs(hideBin(process.argv))
   .option('password', { type: 'string', describe: 'Password for form login' })
   .option('company-id', { type: 'string', describe: 'Company ID for form login (fills #CompanyId input)' })
   .check(argv => {
-    if ((argv['login-url'] || argv.username || argv.password) &&
+    if (argv.url && (argv['login-url'] || argv.username || argv.password) &&
         !(argv['login-url'] && argv.username && argv.password)) {
       throw new Error('--login-url, --username, and --password must all be provided together');
     }
@@ -45,18 +47,26 @@ const argv = yargs(hideBin(process.argv))
   .argv;
 
 async function main() {
-  const { url, iterations, concurrency, output, cookie, authHeader, loginUrl, username, password, companyId } = argv;
+  let { url, iterations, concurrency, output, cookie, authHeader, loginUrl, username, password, companyId } = argv;
+
+  // Enter interactive wizard if no URL was provided
+  if (!url) {
+    const wizardResult = await runWizard();
+    ({ url, iterations, concurrency, output, cookie, authHeader, loginUrl, username, password, companyId } = wizardResult);
+    console.log('');
+  } else {
+    console.log(chalk.bold.cyan('\n🚀 Performance Benchmark Tool'));
+    console.log(chalk.gray(`   URL: ${url}`));
+    console.log(chalk.gray(`   Iterations: ${iterations}, Concurrency: ${concurrency}`));
+    if (cookie) console.log(chalk.gray(`   Cookie: ${cookie.slice(0, 40)}${cookie.length > 40 ? '…' : ''}`));
+    if (authHeader) console.log(chalk.gray(`   Auth: ${authHeader.split(':')[0]}: ***`));
+    if (loginUrl) console.log(chalk.gray(`   Login: ${loginUrl} (user: ${username}${companyId ? `, company: ${companyId}` : ''})`));
+    console.log('');
+  }
+
   const outputDir = path.resolve(output);
 
-  console.log(chalk.bold.cyan('\n🚀 Performance Benchmark Tool'));
-  console.log(chalk.gray(`   URL: ${url}`));
-  console.log(chalk.gray(`   Iterations: ${iterations}, Concurrency: ${concurrency}`));
-  if (cookie) console.log(chalk.gray(`   Cookie: ${cookie.slice(0, 40)}${cookie.length > 40 ? '…' : ''}`));
-  if (authHeader) console.log(chalk.gray(`   Auth: ${authHeader.split(':')[0]}: ***`));
-  if (loginUrl) console.log(chalk.gray(`   Login: ${loginUrl} (user: ${username}${companyId ? `, company: ${companyId}` : ''})`));
-  console.log('');
-
-  const depSpinner = ora('Checking dependencies...').start();
+  const depSpinner= ora('Checking dependencies...').start();
   let deps;
   try {
     deps = await ensureDependencies({ url, iterations, concurrency, output: outputDir });
